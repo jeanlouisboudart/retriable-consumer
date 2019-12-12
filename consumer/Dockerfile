@@ -6,5 +6,5 @@ RUN ["mvn", "install"]
 FROM java:8
 COPY --from=mavenBuild ./target/*.jar ./
 ENV JAVA_OPTS ""
-ENV RETRY_MODE "NO_RETRY"
-CMD [ "bash", "-c", "java ${JAVA_OPTS} -jar *.jar ${RETRY_MODE}"]
+ENV MAIN_CLASS "com.sample.NoRetryConsumer"
+CMD [ "bash", "-c", "java ${JAVA_OPTS} -cp *.jar ${MAIN_CLASS}"]

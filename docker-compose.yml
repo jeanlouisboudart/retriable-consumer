@@ -24,10 +24,35 @@ services:
     depends_on:
       - kafka
 
-  consumer:
+  no-retry-consumer:
     build: consumer/
     environment:
+      MAIN_CLASS: "com.sample.NoRetryConsumer"
+      PERCENTAGE_FAILURES: 10
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_MAX_POLL_RECORDS: 20
+      KAFKA_MAX_POLL_INTERVAL_MS: 10000
     depends_on:
       - kafka
-      - producer
+
+  limited-retries-consumer:
+    build: consumer/
+    environment:
+      MAIN_CLASS: "com.sample.LimitedRetriesConsumer"
+      PERCENTAGE_FAILURES: 10
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_MAX_POLL_RECORDS: 20
+      KAFKA_MAX_POLL_INTERVAL_MS: 10000
+    depends_on:
+      - kafka
+
+  infinite-retries-consumer:
+    build: consumer/
+    environment:
+      MAIN_CLASS: "com.sample.InfiniteRetriesConsumer"
+      PERCENTAGE_FAILURES: 10
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_MAX_POLL_RECORDS: 10
+      KAFKA_MAX_POLL_INTERVAL_MS: 10000
+    depends_on:
+      - kafka

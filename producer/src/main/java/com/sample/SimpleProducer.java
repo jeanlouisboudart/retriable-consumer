@@ -27,6 +27,11 @@ public class SimpleProducer {
         simpleProducer.start();
     }
 
+    private static final String TOPIC_NAME = "sample";
+    private static final String KAFKA_ENV_PREFIX = "KAFKA_";
+    private final Logger logger = LoggerFactory.getLogger(SimpleProducer.class);
+    private final Properties properties = new Properties();
+    private final Random random = new Random();
 
 
     public SimpleProducer() throws ExecutionException, InterruptedException {
@@ -35,18 +40,12 @@ public class SimpleProducer {
         createTopic(adminClient, TOPIC_NAME);
     }
 
-    private final Logger logger = LoggerFactory.getLogger(SimpleProducer.class);
-    private final Properties properties = new Properties();
-    private final String TOPIC_NAME = "sample";
-    Random random = new Random();
-
     private void start() throws InterruptedException {
         logger.info("Sending data to `{}` topic", TOPIC_NAME);
         try (Producer<String, String> producer = new KafkaProducer<>(properties)) {
             int[] values = new int[]{0, 0};
             while (true) {
                 int key = random.nextInt(2);
-                //ProducerRecord<String, String> record = new ProducerRecord<>("sample", key, "Key " + key, "Value " + values[key]);
                 ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC_NAME, "Key " + key, "Value " + values[key]);
                 logger.info("Sending Key = {}, Value = {}", record.key(), record.value());
                 producer.send(record);
@@ -59,10 +58,10 @@ public class SimpleProducer {
     private void buildCommonProperties() {
         Map<String, String> systemProperties = System.getenv().entrySet()
                 .stream()
-                .filter(e -> e.getKey().startsWith("KAFKA_"))
+                .filter(e -> e.getKey().startsWith(KAFKA_ENV_PREFIX))
                 .collect(Collectors.toMap(
                         e -> e.getKey()
-                                .replace("KAFKA_", "")
+                                .replace(KAFKA_ENV_PREFIX, "")
                                 .toLowerCase()
                                 .replace("_", ".")
                         , e -> e.getValue())
