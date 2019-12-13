@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ExternalService {
     private static final String PERCENTAGE_FAILURES = "PERCENTAGE_FAILURES";
-    private final Logger logger = LoggerFactory.getLogger(LimitedRetriesConsumer.class);
+    private final Logger logger = LoggerFactory.getLogger(ExternalService.class);
     private final Random random = new Random();
 
     private final int percentageOfFailures;
