@@ -46,7 +46,7 @@ public class MyExternalServiceTask extends SinkTask {
                     remainingRetries,
                     e
             );
-            if (config.retryBackoffMs == INFINITE_RETRIES || remainingRetries > 0) {
+            if (INFINITE_RETRIES.equals(config.maxRetries) || remainingRetries > 0) {
                 remainingRetries--;
                 context.timeout(config.retryBackoffMs);
                 throw new RetriableException(e);
