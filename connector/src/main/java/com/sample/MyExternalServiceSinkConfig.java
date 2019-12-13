@@ -26,6 +26,8 @@ public class MyExternalServiceSinkConfig extends AbstractConfig {
 
     private static final ConfigDef.Range NON_NEGATIVE_INT_VALIDATOR = ConfigDef.Range.atLeast(0);
 
+    private static final ConfigDef.Range MINUS_1_MINIMUM_INT_VALIDATOR = ConfigDef.Range.atLeast(-1);
+
 
     private static final String CONNECTION_GROUP = "Connection";
     private static final String RETRIES_GROUP = "Retries";
@@ -45,7 +47,7 @@ public class MyExternalServiceSinkConfig extends AbstractConfig {
                     MAX_RETRIES,
                     ConfigDef.Type.INT,
                     MAX_RETRIES_DEFAULT,
-                    NON_NEGATIVE_INT_VALIDATOR,
+                    MINUS_1_MINIMUM_INT_VALIDATOR,
                     ConfigDef.Importance.MEDIUM,
                     MAX_RETRIES_DOC,
                     RETRIES_GROUP,
