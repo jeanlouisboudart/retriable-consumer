@@ -12,4 +12,9 @@
         <appender-ref ref="STDOUT"/>
     </root>
 
+    <logger name="com.sample" level="trace" >
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+
 </configuration>
