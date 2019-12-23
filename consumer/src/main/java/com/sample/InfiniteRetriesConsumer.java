@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
@@ -28,7 +31,7 @@ public class InfiniteRetriesConsumer {
     private final Properties properties = KafkaUtils.buildCommonProperties();
     private final Logger logger = LoggerFactory.getLogger(InfiniteRetriesConsumer.class);
     private final ExternalService externalService = new ExternalService();
-
+    private final Map<TopicPartition, OffsetAndMetadata> offsets =  new HashMap<>();
 
     public InfiniteRetriesConsumer() throws ExecutionException, InterruptedException {
         AdminClient adminClient = KafkaAdminClient.create(properties);
@@ -52,13 +55,14 @@ public class InfiniteRetriesConsumer {
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
         logger.info("Subscribing to `{}` topic", TOPIC_NAME);
-        consumer.subscribe(Collections.singleton(TOPIC_NAME), new LogRebalanceListener());
-
+        consumer.subscribe(Collections.singleton(TOPIC_NAME), new InfiniteRetriesRebalanceListener(consumer, offsets));
 
         while (true) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(BACKOFF));
             Instant startTime = Instant.now();
-            consumer.resume(consumer.assignment());
+            if (isPaused(consumer)) {
+                consumer.resume(consumer.assignment());
+            }
             logger.info("Fetched {} records ", records.count());
             for (ConsumerRecord<String, String> record : records) {
                 logger.info("Received offset = {}, partition = {}, key = {}, value = {}", record.offset(), record.partition(), record.key(), record.value());
@@ -67,14 +71,35 @@ public class InfiniteRetriesConsumer {
                 } catch (Exception e) {
                     logger.error(e.getMessage(), e);
                     consumer.pause(consumer.assignment());
-                    consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
+                    rewind(consumer);
                     break;
                 }
                 KafkaUtils.logDurationSincePoll(startTime);
+                updateOffsetsPosition(record);
             }
-            if (!records.isEmpty() && consumer.paused().isEmpty()) {
-                consumer.commitSync();
+            if (!records.isEmpty() && !isPaused(consumer)) {
+                consumer.commitSync(offsets);
             }
+        }
+    }
+
+    private boolean isPaused(KafkaConsumer<?,?> consumer) {
+        return !consumer.paused().isEmpty();
+
+    }
+
+    private void updateOffsetsPosition(ConsumerRecord<String, String> record) {
+        offsets.put(new TopicPartition(record.topic(),record.partition()), new OffsetAndMetadata(record.offset() + 1));
+    }
+
+    private void rewind(KafkaConsumer<String, String> consumer) {
+        for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : offsets.entrySet()) {
+            if (entry.getValue() != null) {
+                consumer.seek(entry.getKey(), entry.getValue());
+            } else {
+                logger.warn("Cannot rewind on {} to null offset, this could happen if the consumer group was just created", entry.getKey());
+            }
+
         }
     }
 }
