@@ -50,7 +50,7 @@ public class KafkaUtils {
             try {
                 CreateTopicsResult topicsCreationResult = adminClient.createTopics(Collections.singleton(newTopic));
                 topicsCreationResult.all().get();
-            } catch (TopicExistsException e) {
+            } catch (ExecutionException e) {
                 //silent ignore if topic already exists
             }
         }
