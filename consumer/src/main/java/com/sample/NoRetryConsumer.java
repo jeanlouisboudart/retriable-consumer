@@ -42,8 +42,8 @@ public class NoRetryConsumer {
     public void start() throws Exception {
         properties.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "no-retry");
         // for tests purpose we lower the limit to show importance of those two parameters in such scenarios
-        properties.putIfAbsent(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "10000");
-        properties.putIfAbsent(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "20");
+        properties.putIfAbsent(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "10000"); // default to 5min
+        properties.putIfAbsent(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "20"); // default 500
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
         logger.info("Subscribing to `{}` topic", TOPIC_NAME);
