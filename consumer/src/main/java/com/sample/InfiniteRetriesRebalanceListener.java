@@ -34,7 +34,11 @@ public class InfiniteRetriesRebalanceListener implements ConsumerRebalanceListen
     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
         logger.info("Partition assigned : {}", partitions);
         for (TopicPartition topicPartition : partitions) {
-            offsets.put(topicPartition, consumer.committed(topicPartition));
+            OffsetAndMetadata committed = consumer.committed(topicPartition);
+            //position can be unknown when you first initialize the group, let's be lazy here, when messages will be consumed, the map will be filled.
+            if (committed != null) {
+                offsets.put(topicPartition, committed);
+            }
         }
     }
 }
