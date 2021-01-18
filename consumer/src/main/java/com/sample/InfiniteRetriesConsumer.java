@@ -2,11 +2,7 @@ package com.sample;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +27,9 @@ public class InfiniteRetriesConsumer {
     private final Properties properties = KafkaUtils.buildCommonProperties();
     private final Logger logger = LoggerFactory.getLogger(InfiniteRetriesConsumer.class);
     private final ExternalService externalService = new ExternalService();
-    private final Map<TopicPartition, OffsetAndMetadata> offsets =  new HashMap<>();
+    private final Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+    private static final String EARLIEST = "earliest";
+    private static final String LATEST = "latest";
 
     public InfiniteRetriesConsumer() throws ExecutionException, InterruptedException {
         AdminClient adminClient = KafkaAdminClient.create(properties);
@@ -83,16 +81,27 @@ public class InfiniteRetriesConsumer {
         }
     }
 
-    private boolean isPaused(KafkaConsumer<?,?> consumer) {
+    private boolean isPaused(KafkaConsumer<?, ?> consumer) {
         return !consumer.paused().isEmpty();
 
     }
 
     private void updateOffsetsPosition(ConsumerRecord<String, String> record) {
-        offsets.put(new TopicPartition(record.topic(),record.partition()), new OffsetAndMetadata(record.offset() + 1));
+        offsets.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset() + 1));
     }
 
     private void rewind(KafkaConsumer<String, String> consumer) {
+        // if this is the first time you don't have any offset committed yet,
+        // that's unfortunate that you get both no position and a failure, but here would be a path to handle this case
+        if (offsets.isEmpty()) {
+            if (EARLIEST == properties.getOrDefault(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, EARLIEST)) {
+                consumer.seekToBeginning(consumer.assignment());
+            } else if (LATEST == properties.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
+                consumer.seekToEnd(consumer.assignment());
+            }
+
+        }
+        //if we already have committed position
         for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : offsets.entrySet()) {
             if (entry.getValue() != null) {
                 consumer.seek(entry.getKey(), entry.getValue());
