@@ -28,4 +28,17 @@ public class ExternalService {
             throw new Exception("Call to external system failed");
         }
     }
+
+    public String callExternalSystem()  {
+        int duration = random.nextInt(100);
+        try {
+            TimeUnit.MILLISECONDS.sleep(duration);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        if (random.nextInt(100) < percentageOfFailures) {
+            throw new RuntimeException("Call to external system failed");
+        }
+        return "Yes";
+    }
 }
