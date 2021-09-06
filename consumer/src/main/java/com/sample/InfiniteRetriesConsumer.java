@@ -9,10 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class InfiniteRetriesConsumer {
@@ -59,7 +56,7 @@ public class InfiniteRetriesConsumer {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(BACKOFF));
             Instant startTime = Instant.now();
             if (isPaused(consumer)) {
-                consumer.resume(consumer.assignment());
+                consumer.resume(assignment(consumer));;
             }
             logger.info("Fetched {} records ", records.count());
             for (ConsumerRecord<String, String> record : records) {
@@ -68,7 +65,7 @@ public class InfiniteRetriesConsumer {
                     externalService.callExternalSystem(record);
                 } catch (Exception e) {
                     logger.error(e.getMessage(), e);
-                    consumer.pause(consumer.assignment());
+                    consumer.pause(assignment(consumer));
                     rewind(consumer);
                     break;
                 }
@@ -88,6 +85,28 @@ public class InfiniteRetriesConsumer {
 
     private void updateOffsetsPosition(ConsumerRecord<String, String> record) {
         offsets.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset() + 1));
+    }
+
+    /**
+     *
+     * @param consumer
+     * @return Set<TopicPartition>
+     *     Wraps a call to `consumer.assignment()` checking for an empty TopicPartition set,
+     *     in which case the call retries until the return is not empty.
+     *     See the JavaDoc for `consumer.assignment()`.
+     */
+    private Set<TopicPartition> assignment(KafkaConsumer<String, String> consumer) {
+        var res = consumer.assignment();
+        do {
+            if (res.isEmpty()) {
+                logger.warn("consumer.assignment() returned an empty set.");
+                try {
+                    Thread.sleep(200);
+                } catch  (InterruptedException e) { }
+                res = consumer.assignment();
+            }
+        } while (res.isEmpty());
+        return res;
     }
 
     private void rewind(KafkaConsumer<String, String> consumer) {
