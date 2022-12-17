@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 
 public class InfiniteRetriesRebalanceListener implements ConsumerRebalanceListener {
@@ -33,11 +34,11 @@ public class InfiniteRetriesRebalanceListener implements ConsumerRebalanceListen
     @Override
     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
         logger.info("Partition assigned : {}", partitions);
-        for (TopicPartition topicPartition : partitions) {
-            OffsetAndMetadata committed = consumer.committed(topicPartition);
+        Map<TopicPartition, OffsetAndMetadata> offsetsFromKafka = consumer.committed(new HashSet<>(partitions));
+        for (Map.Entry<TopicPartition, OffsetAndMetadata> offsetsEntry : offsetsFromKafka.entrySet()) {
             //position can be unknown when you first initialize the group, let's be lazy here, when messages will be consumed, the map will be filled.
-            if (committed != null) {
-                offsets.put(topicPartition, committed);
+            if (offsetsEntry.getValue() != null) {
+                offsets.put(offsetsEntry.getKey(), offsetsEntry.getValue());
             }
         }
     }
