@@ -4,11 +4,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.clients.producer.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,10 +44,16 @@ public class SimpleProducer {
                 int key = random.nextInt(2);
                 ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC_NAME, "Key " + key, "Value " + values[key]);
                 logger.info("Sending Key = {}, Value = {}", record.key(), record.value());
-                producer.send(record);
+                producer.send(record, (recordMetadata, e) -> callback(record,recordMetadata,e));
                 values[key]++;
                 TimeUnit.SECONDS.sleep(1);
             }
+        }
+    }
+
+    private void callback(ProducerRecord<String, String> record, RecordMetadata recordMetadata, Exception e) {
+        if (e != null) {
+            logger.error("Could not set the message "+ record, e);
         }
     }
 
@@ -73,10 +75,10 @@ public class SimpleProducer {
         properties.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
     }
 
-    private void createTopic(AdminClient adminClient, String TOPIC_NAME) throws InterruptedException, ExecutionException {
-        if (!adminClient.listTopics().names().get().contains(TOPIC_NAME)) {
-            logger.info("Creating topic {}", TOPIC_NAME);
-            final NewTopic newTopic = new NewTopic(TOPIC_NAME, 2, (short) 1);
+    private void createTopic(AdminClient adminClient, String topicName) throws InterruptedException, ExecutionException {
+        if (!adminClient.listTopics().names().get().contains(topicName)) {
+            logger.info("Creating topic {}", topicName);
+            final NewTopic newTopic = new NewTopic(topicName, 2, (short) 1);
             try {
                 CreateTopicsResult topicsCreationResult = adminClient.createTopics(Collections.singleton(newTopic));
                 topicsCreationResult.all().get();
