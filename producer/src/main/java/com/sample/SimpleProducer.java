@@ -28,12 +28,14 @@ public class SimpleProducer {
     private final Logger logger = LoggerFactory.getLogger(SimpleProducer.class);
     private final Properties properties = new Properties();
     private final Random random = new Random();
+    private final Integer delayBetweenMessages;
 
 
     public SimpleProducer() throws ExecutionException, InterruptedException {
         buildCommonProperties();
         AdminClient adminClient = KafkaAdminClient.create(properties);
         createTopic(adminClient, TOPIC_NAME);
+        this.delayBetweenMessages = Integer.valueOf(System.getenv().getOrDefault("DELAY_BETWEEN_MESSAGES", "200"));
     }
 
     private void start() throws InterruptedException {
@@ -46,7 +48,7 @@ public class SimpleProducer {
                 logger.info("Sending Key = {}, Value = {}", record.key(), record.value());
                 producer.send(record, (recordMetadata, e) -> callback(record,recordMetadata,e));
                 values[key]++;
-                TimeUnit.SECONDS.sleep(1);
+                TimeUnit.MILLISECONDS.sleep(delayBetweenMessages);
             }
         }
     }
