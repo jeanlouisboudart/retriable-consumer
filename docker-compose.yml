@@ -46,6 +46,17 @@ services:
     depends_on:
       - kafka
 
+  limited-retries-consumer2:
+    build: consumer/
+    environment:
+      MAIN_CLASS: "com.sample.Main"
+      PERCENTAGE_FAILURES: 10
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_MAX_POLL_RECORDS: 20
+      KAFKA_MAX_POLL_INTERVAL_MS: 10000
+    depends_on:
+      - kafka
+
   infinite-retries-consumer:
     build: consumer/
     environment:
